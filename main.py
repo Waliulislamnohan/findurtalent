@@ -1,6 +1,10 @@
 import streamlit as st
 import numpy as np
 import plotly.graph_objects as go
+from pymongo import MongoClient
+import json
+import plotly.io as pio
+from datetime import datetime
 
 # Inject Custom CSS
 css = """
@@ -105,6 +109,13 @@ div.tooltip:hover .tooltiptext {
 
 st.markdown(css, unsafe_allow_html=True)
 
+# MongoDB connection
+MONGODB_URI = 'mongodb+srv://gv123:W0MGpfJaeHJcujrH@cluster0.rolkq.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0'
+MONGODB_DB = 'gvprod'
+
+client = MongoClient(MONGODB_URI)
+db = client[MONGODB_DB]
+
 # Function to map answer options to scores
 def map_score(option):
     mapping = {
@@ -153,6 +164,15 @@ career_suggestions = {
 # Streamlit App
 st.title("Talent Detector")
 st.header("Please answer the following questions:")
+
+# Email input field
+email = st.text_input(
+    "Enter your email (optional)",
+    help="Your email is used only to personalize the results and will not be sent anywhere.",
+)
+
+if email:
+    st.info(f"Welcome, {email.split('@')[0].capitalize()}! Let's discover your talents.")
 
 # ---------------------
 # Creativity Questions
@@ -362,8 +382,32 @@ if st.button("Submit"):
 
     st.plotly_chart(fig, use_container_width=True)
 
-    # Optional: Add Progress Indicator (if you added it above)
-    # st.progress(progress)
+    # Save chart to MongoDB if email is provided
+    if email:
+        user_collection = db['users']
+        user = user_collection.find_one({'email': email})
+        if user:
+            # Serialize the chart to JSON
+            chart_json = pio.to_json(fig)
+            charts_collection = db['charts']
+            chart_data = {
+                'email': email,
+                'timestamp': datetime.utcnow(),
+                'talent_profile': talent_profile,
+                'scores': {
+                    'creativity_scores': creativity_scores,
+                    'leadership_scores': leadership_scores,
+                    'logic_scores': logic_scores,
+                    'additional_score': additional_score,
+                },
+                'chart_json': chart_json,
+            }
+            charts_collection.insert_one(chart_data)
+            st.success("Your results have been saved.")
+        else:
+            st.warning("Email not found in the database.")
+    else:
+        st.warning("Please enter your email to save your results.")
 
     # Optional: User Feedback Section
     st.subheader("আপনার প্রতিভা প্রোফাইল সম্পর্কে মতামত দিন:")

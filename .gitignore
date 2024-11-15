@@ -1,2 +1,14 @@
 # Ignore all .pkl files
 *.pkl
+# Streamlit secrets
+.streamlit/secrets.toml
+# Ignore Python cache and virtual environment
+__pycache__/
+*.py[cod]
+venv/
+
+# Ignore MongoDB credentials file if you have one
+secrets.toml
+
+# Ignore environment variables file if used
+.env
