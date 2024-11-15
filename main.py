@@ -167,7 +167,7 @@ st.header("Please answer the following questions:")
 
 # Email input field
 email = st.text_input(
-    "Enter your email (optional)",
+    "Enter your email (must)",
     help="Your email is used only to personalize the results and will not be sent anywhere.",
 )
 
