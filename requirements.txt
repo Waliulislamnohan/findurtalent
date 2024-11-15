@@ -12,7 +12,7 @@ PyQt6-WebEngine==6.7.0
 PyQt6_sip==13.8.0
 TBB==0.2
 wheel @ file:///opt/homebrew/Cellar/python%403.12/3.12.5/libexec/wheel-0.44.0-py3-none-any.whl#sha256=8d8a590e50bda8422000110e90bc730ebfcd8363d2de80793ac819b7f252e97d
-streamlit
-plotly
-numpy
-pymongo
+streamlit==1.24.1
+plotly==5.15.0
+numpy==1.24.3
+pymongo==4.6.0
