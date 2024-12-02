@@ -5,6 +5,7 @@ from pymongo import MongoClient
 import json
 import plotly.io as pio
 from datetime import datetime
+import random
 
 # Inject Custom CSS
 css = """
@@ -116,15 +117,6 @@ MONGODB_DB = 'gvprod'
 client = MongoClient(MONGODB_URI)
 db = client[MONGODB_DB]
 
-# Function to map answer options to scores
-def map_score(option):
-    mapping = {
-        "Option A": 1,
-        "Option B": 5,
-        "Option C": 10
-    }
-    return mapping.get(option, 0)
-
 # Function to determine talent profile based on scores
 def determine_profile(creativity, leadership, logic):
     scores = {
@@ -161,6 +153,15 @@ career_suggestions = {
     ]
 }
 
+# Helper function to shuffle options and store in session state
+def get_shuffled_options(question_key, options_with_scores):
+    shuffle_key = f"shuffled_{question_key}"
+    if shuffle_key not in st.session_state:
+        shuffled = options_with_scores.copy()
+        random.shuffle(shuffled)
+        st.session_state[shuffle_key] = shuffled
+    return st.session_state[shuffle_key]
+
 # Streamlit App
 st.title("Talent Detector")
 st.header("Please answer the following questions:")
@@ -179,130 +180,193 @@ if email:
 # ---------------------
 st.subheader("সৃজনশীলতা")
 
-creativity_q1 = st.radio(
-    "১. একটি নতুন প্রকল্পে কাজ শুরু করার সময়, আপনি সাধারণত কীভাবে পরিকল্পনা করেন?",
-    ("Option A: পূর্বের অভিজ্ঞতার ওপর নির্ভর করে কাজ শুরু করি।",
-     "Option B: বিভিন্ন উৎস থেকে অনুপ্রেরণা সংগ্রহ করে নতুন আইডিয়া তৈরি করি।",
-     "Option C: টিমের সঙ্গে আলোচনা করে এবং যৌথভাবে পরিকল্পনা করি।"),
-    help="আপনার পরিকল্পনার পদ্ধতি আপনার সৃজনশীলতার মাত্রা নির্ধারণ করে।"
-)
+# Define Creativity Questions with options and associated scores
+creativity_questions = [
+    {
+        "question": "১. একটি নতুন প্রকল্পে কাজ শুরু করার সময়, আপনি সাধারণত কীভাবে পরিকল্পনা করেন?",
+        "options": [
+            ("পূর্বের অভিজ্ঞতার ওপর নির্ভর করে কাজ শুরু করি।", 1),
+            ("বিভিন্ন উৎস থেকে অনুপ্রেরণা সংগ্রহ করে নতুন আইডিয়া তৈরি করি।", 5),
+            ("টিমের সঙ্গে আলোচনা করে এবং যৌথভাবে পরিকল্পনা করি।", 10)
+        ],
+        "key": "creativity_q1"
+    },
+    {
+        "question": "২. যখন আপনি কোনো সৃজনশীল সমস্যার সম্মুখীন হন, তখন আপনি কীভাবে প্রতিক্রিয়া জানান?",
+        "options": [
+            ("সমস্যাটির সমাধান এড়িয়ে চলি।", 1),
+            ("বিভিন্ন পদ্ধতি ব্যবহার করে সমস্যাটি সমাধানের চেষ্টা করি।", 5),
+            ("সমস্যাটি দ্রুত সমাধানের জন্য সহকর্মীদের সাহায্য চাই।", 10)
+        ],
+        "key": "creativity_q2"
+    },
+    {
+        "question": "৩. টিম মিটিংয়ে আপনি কী ধরনের ভূমিকা পালন করেন?",
+        "options": [
+            ("শুধুমাত্র শুনি এবং নোট নেয়।", 1),
+            ("মাঝে মাঝে কিছু ধারণা শেয়ার করি।", 5),
+            ("সক্রিয়ভাবে নতুন আইডিয়া নিয়ে আসি এবং টিমকে উৎসাহিত করি।", 10)
+        ],
+        "key": "creativity_q3"
+    }
+]
 
-creativity_q2 = st.radio(
-    "২. যখন আপনি কোনো সৃজনশীল সমস্যার সম্মুখীন হন, তখন আপনি কীভাবে প্রতিক্রিয়া জানান?",
-    ("Option A: সমস্যাটির সমাধান এড়িয়ে চলি।",
-     "Option B: বিভিন্ন পদ্ধতি ব্যবহার করে সমস্যাটি সমাধানের চেষ্টা করি।",
-     "Option C: সমস্যাটি দ্রুত সমাধানের জন্য সহকর্মীদের সাহায্য চাই।"),
-    help="আপনি সমস্যার সমাধানে কতটা সৃজনশীল এবং উদ্ভাবনী।"
-)
+creativity_scores = []
 
-creativity_q3 = st.radio(
-    "৩. টিম মিটিংয়ে আপনি কী ধরনের ভূমিকা পালন করেন?",
-    ("Option A: শুধুমাত্র শুনি এবং নোট নেয়।",
-     "Option B: মাঝে মাঝে কিছু ধারণা শেয়ার করি।",
-     "Option C: সক্রিয়ভাবে নতুন আইডিয়া নিয়ে আসি এবং টিমকে উৎসাহিত করি।"),
-    help="টিমের মধ্যে আপনার সৃজনশীল অবদান কেমন।"
-)
+for q in creativity_questions:
+    shuffled_options = get_shuffled_options(q["key"], q["options"])
+    option_texts = [option[0] for option in shuffled_options]
+    selection = st.radio(
+        q["question"],
+        option_texts,
+        key=f"selection_{q['key']}",
+        help="আপনার পরিকল্পনার পদ্ধতি আপনার সৃজনশীলতার মাত্রা নির্ধারণ করে।"
+    )
+    # Retrieve the score based on the selected option
+    selected_score = next(option[1] for option in shuffled_options if option[0] == selection)
+    creativity_scores.append(selected_score)
 
 # ---------------------
 # Leadership Questions
 # ---------------------
 st.subheader("নেতৃত্ব")
 
-leadership_q1 = st.radio(
-    "১. যখন আপনার টিম বড় ধরনের সমস্যার সম্মুখীন হয়, তখন আপনি কীভাবে পরিচালনা করেন?",
-    ("Option A: সমস্যাটির দায়িত্ব নির্দিষ্ট সদস্যদের ওপর চাপিয়ে দিই।",
-     "Option B: ইতিবাচক মনোভাব রেখে টিমকে প্রেরণা জোগাই এবং সমাধানের পথ খুঁজে বের করি।",
-     "Option C: নিজেকে সমস্যার বাইরে রেখে টিমকে নিজেরাই এটি সমাধান করতে দিই।"),
-    help="আপনি সংকটের সময় টিমকে কীভাবে পরিচালনা করেন।"
-)
+# Define Leadership Questions with options and associated scores
+leadership_questions = [
+    {
+        "question": "১. যখন আপনার টিম বড় ধরনের সমস্যার সম্মুখীন হয়, তখন আপনি কীভাবে পরিচালনা করেন?",
+        "options": [
+            ("সমস্যাটির দায়িত্ব নির্দিষ্ট সদস্যদের ওপর চাপিয়ে দিই।", 1),
+            ("ইতিবাচক মনোভাব রেখে টিমকে প্রেরণা জোগাই এবং সমাধানের পথ খুঁজে বের করি।", 5),
+            ("নিজেকে সমস্যার বাইরে রেখে টিমকে নিজেরাই এটি সমাধান করতে দিই।", 10)
+        ],
+        "key": "leadership_q1"
+    },
+    {
+        "question": "২. একটি টিমের নেতৃত্ব দেওয়ার সময় আপনি সিদ্ধান্ত গ্রহণের প্রক্রিয়া কীভাবে পরিচালনা করেন?",
+        "options": [
+            ("এককভাবে সিদ্ধান্ত নেয়া হয়।", 1),
+            ("টিমের সদস্যদের মতামত সংগ্রহ করে এবং সেগুলি বিবেচনা করে সিদ্ধান্ত নেয়।", 5),
+            ("সিদ্ধান্ত নেওয়ার জন্য উচ্চতর কর্তৃপক্ষের উপর নির্ভর করা হয়।", 10)
+        ],
+        "key": "leadership_q2"
+    },
+    {
+        "question": "৩. কাজ ভাগ করার সময় আপনি কীভাবে টিম মেম্বারদের নির্বাচন করেন?",
+        "options": [
+            ("এলোমেলোভাবে কাজ ভাগ করে দিই।", 1),
+            ("নিজেকে সবচেয়ে গুরুত্বপূর্ণ কাজগুলো রাখি।", 5),
+            ("টিম মেম্বারদের দক্ষতা এবং অভিজ্ঞতার উপর ভিত্তি করে কাজ ভাগ করে দিই।", 10)
+        ],
+        "key": "leadership_q3"
+    }
+]
 
-leadership_q2 = st.radio(
-    "২. একটি টিমের নেতৃত্ব দেওয়ার সময় আপনি সিদ্ধান্ত গ্রহণের প্রক্রিয়া কীভাবে পরিচালনা করেন?",
-    ("Option A: এককভাবে সিদ্ধান্ত নেয়া হয়।",
-     "Option B: টিমের সদস্যদের মতামত সংগ্রহ করে এবং সেগুলি বিবেচনা করে সিদ্ধান্ত নেয়।",
-     "Option C: সিদ্ধান্ত নেওয়ার জন্য উচ্চতর কর্তৃপক্ষের উপর নির্ভর করা হয়।"),
-    help="আপনার সিদ্ধান্ত গ্রহণের পদ্ধতি কেমন।"
-)
+leadership_scores = []
 
-leadership_q3 = st.radio(
-    "৩. কাজ ভাগ করার সময় আপনি কীভাবে টিম মেম্বারদের নির্বাচন করেন?",
-    ("Option A: এলোমেলোভাবে কাজ ভাগ করে দিই।",
-     "Option B: নিজেকে সবচেয়ে গুরুত্বপূর্ণ কাজগুলো রাখি।",
-     "Option C: টিম মেম্বারদের দক্ষতা এবং অভিজ্ঞতার উপর ভিত্তি করে কাজ ভাগ করে দিই।"),
-    help="আপনি কাজ ভাগ করার সময় কীভাবে টিম মেম্বারদের নির্বাচন করেন।"
-)
+for q in leadership_questions:
+    shuffled_options = get_shuffled_options(q["key"], q["options"])
+    option_texts = [option[0] for option in shuffled_options]
+    selection = st.radio(
+        q["question"],
+        option_texts,
+        key=f"selection_{q['key']}",
+        help="আপনি সংকটের সময় টিমকে কীভাবে পরিচালনা করেন।"
+    )
+    # Retrieve the score based on the selected option
+    selected_score = next(option[1] for option in shuffled_options if option[0] == selection)
+    leadership_scores.append(selected_score)
 
 # ---------------------
 # Logic Building Questions
 # ---------------------
 st.subheader("যৌক্তিক চিন্তা")
 
-logic_q1 = st.radio(
-    "১. জটিল কোডিং সমস্যার মুখোমুখি হলে আপনি কীভাবে এটি সমাধান করেন?",
-    ("Option A: সমস্যাটি ছোট ছোট অংশে ভাগ করে প্রতিটি ধাপ পদ্ধতিগতভাবে সমাধান করি।",
-     "Option B: ইন্টারনেট থেকে কোড কপি করে সমস্যা সমাধান করার চেষ্টা করি।",
-     "Option C: কোনো পরিকল্পনা না করে সরাসরি সমস্যাটির মোকাবিলা করি।"),
-    help="আপনি জটিল সমস্যার সমাধানে কতটা বিশ্লেষণাত্মক।"
-)
+# Define Logic Questions with options and associated scores
+logic_questions = [
+    {
+        "question": "১. জটিল কোডিং সমস্যার মুখোমুখি হলে আপনি কীভাবে এটি সমাধান করেন?",
+        "options": [
+            ("সমস্যাটি ছোট ছোট অংশে ভাগ করে প্রতিটি ধাপ পদ্ধতিগতভাবে সমাধান করি।", 1),
+            ("ইন্টারনেট থেকে কোড কপি করে সমস্যা সমাধান করার চেষ্টা করি।", 5),
+            ("কোনো পরিকল্পনা না করে সরাসরি সমস্যাটির মোকাবিলা করি।", 10)
+        ],
+        "key": "logic_q1"
+    },
+    {
+        "question": "২. আপনার সমাধানটি সঠিক কিনা কীভাবে নিশ্চিত করেন?",
+        "options": [
+            ("একবার কাজ করলে সঠিক বুঝে নিই।", 1),
+            ("বিভিন্ন পরিস্থিতিতে এটি পরীক্ষা করে এর সঠিকতা যাচাই করি।", 5),
+            ("অন্যদের উপর নির্ভর করে কাজের সঠিকতা যাচাই করি।", 10)
+        ],
+        "key": "logic_q2"
+    },
+    {
+        "question": "৩. নতুন প্রোগ্রামিং কনসেপ্ট শেখার পর আপনি কীভাবে এটি আপনার দক্ষতায় অন্তর্ভুক্ত করেন?",
+        "options": [
+            ("শুধুমাত্র সিনট্যাক্স মুখস্থ করি এবং এর মূলনীতি বুঝতে চেষ্টা করি না।", 1),
+            ("মূল ধারণাগুলো বুঝে সেগুলি বিভিন্ন সমস্যায় প্রয়োগ করি।", 5),
+            ("নতুন কনসেপ্টগুলো এড়িয়ে চলি এবং যা জানি তাই ধরে রাখি।", 10)
+        ],
+        "key": "logic_q3"
+    }
+]
 
-logic_q2 = st.radio(
-    "২. আপনার সমাধানটি সঠিক কিনা কীভাবে নিশ্চিত করেন?",
-    ("Option A: একবার কাজ করলে সঠিক বুঝে নিই।",
-     "Option B: বিভিন্ন পরিস্থিতিতে এটি পরীক্ষা করে এর সঠিকতা যাচাই করি।",
-     "Option C: অন্যদের উপর নির্ভর করে কাজের সঠিকতা যাচাই করি।"),
-    help="আপনি আপনার সমাধানের সঠিকতা কতটা নিশ্চিত করেন।"
-)
+logic_scores = []
 
-logic_q3 = st.radio(
-    "৩. নতুন প্রোগ্রামিং কনসেপ্ট শেখার পর আপনি কীভাবে এটি আপনার দক্ষতায় অন্তর্ভুক্ত করেন?",
-    ("Option A: শুধুমাত্র সিনট্যাক্স মুখস্থ করি এবং এর মূলনীতি বুঝতে চেষ্টা করি না।",
-     "Option B: মূল ধারণাগুলো বুঝে সেগুলি বিভিন্ন সমস্যায় প্রয়োগ করি।",
-     "Option C: নতুন কনসেপ্টগুলো এড়িয়ে চলি এবং যা জানি তাই ধরে রাখি।"),
-    help="নতুন কনসেপ্টগুলি আপনি কীভাবে আপনার দক্ষতায় অন্তর্ভুক্ত করেন।"
-)
+for q in logic_questions:
+    shuffled_options = get_shuffled_options(q["key"], q["options"])
+    option_texts = [option[0] for option in shuffled_options]
+    selection = st.radio(
+        q["question"],
+        option_texts,
+        key=f"selection_{q['key']}",
+        help="আপনি জটিল সমস্যার সমাধানে কতটা বিশ্লেষণাত্মক।"
+    )
+    # Retrieve the score based on the selected option
+    selected_score = next(option[1] for option in shuffled_options if option[0] == selection)
+    logic_scores.append(selected_score)
 
 # ---------------------
 # Additional Question (Problem-Solving)
 # ---------------------
 st.subheader("অতিরিক্ত প্রশ্ন")
 
-additional_q = st.radio(
-    "৪. প্রোগ্রামের বাগ ঠিক করার সময় আপনি কীভাবে এটি করেন?",
-    ("Option A: এলোমেলো সমাধান চেষ্টা করে দেখি কিছু কাজ করে কিনা।",
-     "Option B: কোডটি পদ্ধতিগতভাবে ট্রেস করে সমস্যাটি খুঁজে বের করি।",
-     "Option C: সহকর্মী বা অনলাইন উৎস থেকে সাহায্য খুঁজি।"),
+# Define Additional Question with options and associated scores
+additional_question = {
+    "question": "৪. প্রোগ্রামের বাগ ঠিক করার সময় আপনি কীভাবে এটি করেন?",
+    "options": [
+        ("এলোমেলো সমাধান চেষ্টা করে দেখি কিছু কাজ করে কিনা।", 1),
+        ("কোডটি পদ্ধতিগতভাবে ট্রেস করে সমস্যাটি খুঁজে বের করি।", 5),
+        ("সহকর্মী বা অনলাইন উৎস থেকে সাহায্য খুঁজি।", 10)
+    ],
+    "key": "additional_q"
+}
+
+additional_scores = []
+
+shuffled_options = get_shuffled_options(additional_question["key"], additional_question["options"])
+option_texts = [option[0] for option in shuffled_options]
+selection = st.radio(
+    additional_question["question"],
+    option_texts,
+    key=f"selection_{additional_question['key']}",
     help="বাগ ঠিক করার সময় আপনার সমস্যার সমাধানের পদ্ধতি।"
 )
+# Retrieve the score based on the selected option
+selected_score = next(option[1] for option in shuffled_options if option[0] == selection)
+additional_scores.append(selected_score)
 
 # ---------------------
 # Submit and Process
 # ---------------------
 if st.button("Submit"):
-    # Map all answers to scores
-    creativity_scores = [
-        map_score(creativity_q1.split(":")[0]),
-        map_score(creativity_q2.split(":")[0]),
-        map_score(creativity_q3.split(":")[0])
-    ]
-
-    leadership_scores = [
-        map_score(leadership_q1.split(":")[0]),
-        map_score(leadership_q2.split(":")[0]),
-        map_score(leadership_q3.split(":")[0])
-    ]
-
-    logic_scores = [
-        map_score(logic_q1.split(":")[0]),
-        map_score(logic_q2.split(":")[0]),
-        map_score(logic_q3.split(":")[0])
-    ]
-
-    additional_score = map_score(additional_q.split(":")[0])
-
     # Calculate total scores for each category
     total_creativity = sum(creativity_scores)
     total_leadership = sum(leadership_scores)
     total_logic = sum(logic_scores)
+    total_additional = sum(additional_scores)  # Not used in profile determination
 
     # Determine the talent profile based on highest score
     talent_profile = determine_profile(total_creativity, total_leadership, total_logic)
@@ -324,7 +388,7 @@ if st.button("Submit"):
         "Additional Q"
     ]
 
-    user_scores = creativity_scores + leadership_scores + logic_scores + [additional_score]
+    user_scores = creativity_scores + leadership_scores + logic_scores + additional_scores
 
     # Define average scores for different profiles (adjust these based on your actual data)
     average_profiles = {
@@ -398,12 +462,16 @@ if st.button("Submit"):
                     'creativity_scores': creativity_scores,
                     'leadership_scores': leadership_scores,
                     'logic_scores': logic_scores,
-                    'additional_score': additional_score,
+                    'additional_score': selected_score,
                 },
                 'chart_json': chart_json,
             }
-            charts_collection.insert_one(chart_data)
-            st.success("Your results have been saved.")
+            try:
+                # Use replace_one with upsert=True to overwrite existing data or insert new
+                charts_collection.replace_one({'email': email}, chart_data, upsert=True)
+                st.success("Your results have been saved.")
+            except Exception as e:
+                st.error(f"An error occurred while saving your results: {e}")
         else:
             st.warning("Email not found in the database.")
     else:
@@ -414,7 +482,16 @@ if st.button("Submit"):
     feedback = st.text_area("আপনার মন্তব্য এখানে লিখুন:")
     if st.button("মতামত জমা দিন"):
         if feedback:
-            st.write("ধন্যবাদ আপনার মতামতের জন্য!")
-            # Here, you can add code to save the feedback for future analysis
+            try:
+                feedback_collection = db['feedback']
+                feedback_data = {
+                    'email': email,
+                    'timestamp': datetime.utcnow(),
+                    'feedback': feedback
+                }
+                feedback_collection.insert_one(feedback_data)
+                st.write("ধন্যবাদ আপনার মতামতের জন্য!")
+            except Exception as e:
+                st.error(f"An error occurred while saving your feedback: {e}")
         else:
             st.warning("কমেন্ট লিখুন আগে।")
