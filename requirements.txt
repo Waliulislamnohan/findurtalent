@@ -1,5 +1,11 @@
-streamlit
-plotly
+
+
 numpy
-pymongo
+
 setuptools
+
+
+streamlit==1.15.0
+plotly==5.9.0
+pymongo==4.2.0
+python-dotenv==0.21.0
