@@ -6,12 +6,6 @@ import json
 import plotly.io as pio
 from datetime import datetime
 import random
-from dotenv import load_dotenv
-import os
-
-# Load environment variables (ensure you have a .env file with MONGODB_URI)
-load_dotenv()
-MONGODB_URI = os.getenv('MONGODB_URI')  # Securely load your MongoDB URI from environment variables
 
 # Inject Custom CSS
 css = """
@@ -117,8 +111,11 @@ div.tooltip:hover .tooltiptext {
 st.markdown(css, unsafe_allow_html=True)
 
 # MongoDB connection
+MONGODB_URI = 'mongodb+srv://gv123:W0MGpfJaeHJcujrH@cluster0.rolkq.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0'
+MONGODB_DB = 'gvprod'
+
 client = MongoClient(MONGODB_URI)
-db = client['gvprod']  # Ensure 'gvprod' is your actual database name
+db = client[MONGODB_DB]
 
 # Function to determine talent profile based on scores
 def determine_profile(creativity, leadership, logic):
@@ -131,45 +128,28 @@ def determine_profile(creativity, leadership, logic):
     max_category = max(scores, key=scores.get)
     return max_category
 
-# Career and Department suggestions based on talent profiles
+# Career suggestions based on talent profiles
 career_suggestions = {
     "Creative": [
         {"title": "Graphic Designer", "description": "Design visual content for brands, advertisements, and products.", "link": "https://www.example.com/graphic-designer"},
         {"title": "Content Creator", "description": "Develop engaging content for various media platforms.", "link": "https://www.example.com/content-creator"},
         {"title": "Marketing Specialist", "description": "Plan and execute marketing campaigns to promote products or services.", "link": "https://www.example.com/marketing-specialist"},
         {"title": "Product Designer", "description": "Design and develop new products from concept to market.", "link": "https://www.example.com/product-designer"},
-        {"title": "Art Director", "description": "Lead the visual aspects of creative projects and campaigns.", "link": "https://www.example.com/art-director"},
-        # Undergraduate Departments
-        {"title": "Bachelor of Arts in Graphic Design", "description": "Focuses on visual communication, typography, and digital media.", "link": "https://daffodilvarsity.edu.bd/programs/graphic-design"},
-        {"title": "Bachelor of Arts in Media and Communication", "description": "Covers mass communication, media production, and digital marketing.", "link": "https://daffodilvarsity.edu.bd/programs/media-communication"},
-        {"title": "Bachelor of Business Administration (Marketing)", "description": "Emphasizes marketing strategies, consumer behavior, and branding.", "link": "https://daffodilvarsity.edu.bd/programs/bba-marketing"},
-        {"title": "Bachelor of Fine Arts", "description": "Explores visual arts, sculpture, painting, and multimedia art.", "link": "https://daffodilvarsity.edu.bd/programs/fine-arts"}
+        {"title": "Art Director", "description": "Lead the visual aspects of creative projects and campaigns.", "link": "https://www.example.com/art-director"}
     ],
     "Logical Wizard": [
         {"title": "Software Developer", "description": "Develop and maintain software applications.", "link": "https://www.example.com/software-developer"},
         {"title": "Data Scientist", "description": "Analyze complex data to help make informed business decisions.", "link": "https://www.example.com/data-scientist"},
         {"title": "Systems Analyst", "description": "Evaluate and improve IT systems to meet organizational needs.", "link": "https://www.example.com/systems-analyst"},
         {"title": "Cybersecurity Analyst", "description": "Protect organizational data and systems from cyber threats.", "link": "https://www.example.com/cybersecurity-analyst"},
-        {"title": "Database Administrator", "description": "Manage and maintain databases to ensure data integrity and security.", "link": "https://www.example.com/database-administrator"},
-        # Undergraduate Departments
-        {"title": "Bachelor of Science in Computer Science & Engineering", "description": "Focuses on software development, algorithms, and computer systems.", "link": "https://daffodilvarsity.edu.bd/programs/computer-science-engineering"},
-        {"title": "Bachelor of Science in Data Science", "description": "Covers data analysis, machine learning, and big data technologies.", "link": "https://daffodilvarsity.edu.bd/programs/data-science"},
-        {"title": "Bachelor of Science in Information Systems", "description": "Emphasizes IT management, systems analysis, and database management.", "link": "https://daffodilvarsity.edu.bd/programs/information-systems"},
-        {"title": "Bachelor of Science in Mathematics", "description": "Includes pure and applied mathematics, statistical methods, and modeling.", "link": "https://daffodilvarsity.edu.bd/programs/mathematics"},
-        {"title": "Bachelor of Science in Electrical and Electronic Engineering", "description": "Focuses on circuit design, signal processing, and electronics.", "link": "https://daffodilvarsity.edu.bd/programs/electrical-electronic-engineering"}
+        {"title": "Database Administrator", "description": "Manage and maintain databases to ensure data integrity and security.", "link": "https://www.example.com/database-administrator"}
     ],
     "Leader": [
         {"title": "Project Manager", "description": "Oversee projects from inception to completion, ensuring timely delivery.", "link": "https://www.example.com/project-manager"},
         {"title": "Team Lead", "description": "Guide and support team members to achieve project goals.", "link": "https://www.example.com/team-lead"},
         {"title": "Operations Manager", "description": "Manage daily operations to ensure efficiency and effectiveness.", "link": "https://www.example.com/operations-manager"},
         {"title": "Product Manager", "description": "Lead product development and strategy to meet market demands.", "link": "https://www.example.com/product-manager"},
-        {"title": "Human Resources Manager", "description": "Manage HR functions, including recruitment, training, and employee relations.", "link": "https://www.example.com/human-resources-manager"},
-        # Undergraduate Departments
-        {"title": "Bachelor of Business Administration (BBA)", "description": "Focuses on business management, organizational behavior, and entrepreneurship.", "link": "https://daffodilvarsity.edu.bd/programs/bba"},
-        {"title": "Bachelor of Business Administration (Human Resources)", "description": "Emphasizes recruitment, training, and employee relations.", "link": "https://daffodilvarsity.edu.bd/programs/bba-human-resources"},
-        {"title": "Bachelor of Business Administration (International Business)", "description": "Covers global trade, international marketing, and cross-cultural management.", "link": "https://daffodilvarsity.edu.bd/programs/bba-international-business"},
-        {"title": "Bachelor of Business Administration (Project Management)", "description": "Focuses on project planning, execution, and lifecycle management.", "link": "https://daffodilvarsity.edu.bd/programs/bba-project-management"},
-        {"title": "Bachelor of Arts in Public Administration", "description": "Covers public sector management, policy analysis, and governance.", "link": "https://daffodilvarsity.edu.bd/programs/public-administration"}
+        {"title": "Human Resources Manager", "description": "Manage HR functions, including recruitment, training, and employee relations.", "link": "https://www.example.com/human-resources-manager"}
     ]
 }
 
@@ -188,7 +168,7 @@ st.header("Please answer the following questions:")
 
 # Email input field
 email = st.text_input(
-    "Enter your email (required)",
+    "Enter your email (must)",
     help="Your email is used only to personalize the results and will not be sent anywhere.",
 )
 
@@ -394,11 +374,11 @@ if st.button("Submit"):
     # Display the result
     st.success(f"**প্রত্যাশিত প্রতিভা প্রোফাইল:** {talent_profile}")
 
-    # Career and Department suggestions based on profile
-    st.subheader("আপনার জন্য উপযুক্ত ক্যারিয়ার এবং ডিপার্টমেন্ট:")
-    for suggestion in career_suggestions.get(talent_profile, []):
-        st.markdown(f"### {suggestion['title']}")
-        st.markdown(f"{suggestion['description']} [আরও জানুন]({suggestion['link']})\n")
+    # Career suggestions based on profile
+    st.subheader("আপনার জন্য উপযুক্ত ক্যারিয়ার:")
+    for job in career_suggestions.get(talent_profile, []):
+        st.markdown(f"### {job['title']}")
+        st.markdown(f"{job['description']} [আরও জানুন]({job['link']})\n")
 
     # Prepare data for radar chart
     categories = [
@@ -482,7 +462,7 @@ if st.button("Submit"):
                     'creativity_scores': creativity_scores,
                     'leadership_scores': leadership_scores,
                     'logic_scores': logic_scores,
-                    'additional_score': additional_scores,
+                    'additional_score': selected_score,
                 },
                 'chart_json': chart_json,
             }
